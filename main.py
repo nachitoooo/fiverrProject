@@ -1,7 +1,7 @@
 import tkinter as tk
 import subprocess
 import re
-
+from customtkinter import *
 def scan_wifi_networks():
     wifi_listbox.delete(0, tk.END)
     try:
@@ -28,33 +28,32 @@ def connect_to_wifi():
 
 def check_connection_successful():
     try:
-        # Intenta realizar una operación que dependa de la conexión, por ejemplo, hacer ping a un servidor
         subprocess.run(["ping", "-n", "1", "google.com"], check=True)
         return True
     except subprocess.CalledProcessError:
         return False
 
-root = tk.Tk()
+root = CTk()
 root.title("Wi-Fi Scanner")
 
 root.state('zoomed')
 
-scan_button = tk.Button(root, text="Scan Wi-Fi Networks", command=scan_wifi_networks)
+scan_button = CTkButton(root, text="Scan Wi-Fi Networks", command=scan_wifi_networks)
 scan_button.pack(pady=10)
 
 scrollbar = tk.Scrollbar(root, orient=tk.VERTICAL)
-wifi_listbox = tk.Listbox(root, selectmode=tk.SINGLE, yscrollcommand=scrollbar.set, height=30, width=100)
+wifi_listbox = tk.Listbox(root, selectmode=tk.SINGLE, yscrollcommand=scrollbar.set, height=30, width=100, fg="white", bg="#010001", justify="center", font=("Helvetica", "12", "bold"))
 wifi_listbox.pack(pady=10)
 scrollbar.config(command=wifi_listbox.yview)
 scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
 wifi_listbox.yview(tk.END)
 
-password_label = tk.Label(root, text="Password:")
+password_label = CTkLabel(root, text="Password:")
 password_label.pack(pady=5)
-password_entry = tk.Entry(root, show="*")
+password_entry = CTkEntry(root, show="*")
 password_entry.pack(pady=5)
 
-connect_button = tk.Button(root, text="Connect to Wi-Fi", command=connect_to_wifi)
+connect_button = CTkButton(root, text="Connect to Wi-Fi", command=connect_to_wifi)
 connect_button.pack(pady=10)
 
 root.mainloop()

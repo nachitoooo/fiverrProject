@@ -124,35 +124,74 @@ def obtener_telemetria():
         "nucleos": psutil.cpu_count(logical=False),
         "porcentaje_general": psutil.cpu_percent(),
         "porcentaje_por_nucleo": psutil.cpu_percent(percpu=True),
-        "temperatura_cpu": obtener_temperatura_cpu(),
     }
 
-    # Obtener información de GPU
-    gpu_info = {
-    "porcentaje_trabajo": GPUtil.getGPUs()[0].load * 100,
-    "frecuencia": GPUtil.getGPUs()[0].driver,  # Corregir aquí
-    "temperatura_gpu": GPUtil.getGPUs()[0].temperature
-}
+    # Obtener temperatura de la CPU
+    try:
+        if platform.system() == 'Windows':
+            import wmi
+            w = wmi.WMI(namespace="root/OpenHardwareMonitor")
+            temperature_info = w.Sensor()
+            cpu_temperature = next((sensor.Value for sensor in temperature_info if sensor.Name == 'Temperature CPU Core'), None)
+            cpu_info["temperatura_cpu"] = cpu_temperature if cpu_temperature else "No disponible"
+        else:
+            # Agrega aquí la lógica para obtener la temperatura en sistemas no Windows
+            cpu_info["temperatura_cpu"] = "No disponible"
+    except Exception as e:
+        cpu_info["temperatura_cpu"] = "No disponible"
+
+    # Obtener información de la GPU
+    try:
+        gpu = GPUtil.getGPUs()[0]
+        gpu_info = {
+            "porcentaje_trabajo": gpu.load * 100,
+            "frecuencia": getattr(gpu, 'memoryInfo', {}).get(0, "No disponible"),  # Assuming core frequency is stored at index 0
+        }
+
+        # Obtener temperatura de la GPU
+        gpu_temperature = getattr(gpu, 'temperature', "No disponible")
+        gpu_info["temperatura_gpu"] = gpu_temperature if gpu_temperature else "No disponible"
+
+    except Exception as e:
+        gpu_info = {
+            "porcentaje_trabajo": "No disponible",
+            "frecuencia": "No disponible",
+            "temperatura_gpu": "No disponible",
+        }
 
     # Obtener información de RAM
-    ram_info = {
-        "uso": psutil.virtual_memory().used,
-        "total": psutil.virtual_memory().total
-    }
+    try:
+        ram_info = {
+            "uso_ram": psutil.virtual_memory().used,
+            "total": psutil.virtual_memory().total
+        }
+    except Exception as e:
+        ram_info = {
+            "uso": "No disponible",
+            "total": "No disponible"
+        }
 
-    # Obtener información de almacenamiento
-    almacenamiento_info = {
-    "interno": {
-        "usado": psutil.disk_usage('C:/').used,  # Reemplaza 'C:/' con la letra de la unidad correcta en Windows
-        "total": psutil.disk_usage('C:/').total
-    },
-    "sd": {
-        "usado": 0,  # Cambia esto según la configuración real en tu sistema Windows
-        "total": 0
-    }
-}
+    try:
+        almacenamiento_info = {
+            "interno": {
+                "uso_disco": psutil.disk_usage('/').used,  # Cambia '/' con la ruta correcta en tu sistema
+                "almacenamiento_total": psutil.disk_usage('/').total
+            }
+        }
+    except Exception as e:
+        almacenamiento_info = {
+            "interno": {
+                "uso_disco": "No disponible",
+                "almacenamiento_total": "No disponible"
+            },
+            "sd": {
+                "usado": "No disponible",
+                "total": "No disponible"
+            }
+        }
 
-    # Obtener información adicional (reemplaza con tus propias funciones o módulos)
+    # Obtener información adicional (puedes agregar tus propias funciones o módulos aquí)
+
     return cpu_info, gpu_info, ram_info, almacenamiento_info
 
 
@@ -206,11 +245,14 @@ def mostrar_telemetria_tiempo_real():
     # Crear un frame para cada conjunto de etiquetas y porcentajes
     for idx, (label_text, data_key) in enumerate([
         ("Porcentaje CPU:", "porcentaje_general"),
-        ("Porcentaje GPU:", "porcentaje_trabajo"),
-        ("Uso de RAM:", "uso"),
-        ("Uso de almacenamiento interno:", "interno_usado"),
+        ("Uso de RAM:", "uso_ram"),
+        ("Temperatura CPU:", "temperatura_cpu"),  # Agregado: Temperatura CPU
+        ("Porcentaje GPU:", "porcentaje_trabajo"),  # Agregado: Porcentaje GPU
+        ("Frecuencia GPU:", "frecuencia"),  # Agregado: Frecuencia GPU
+        ("Temperatura GPU:", "temperatura_gpu"),  # Agregado: Temperatura GPU
+        ("Uso de almacenamiento interno:", "uso_disco"),
+        ("Almacenamiento total del Disco:", "almacenamiento_total"),
         ("Porcentaje Batería:", "porcentaje_bateria"),
-        ("Porcentaje Total:", "porcentaje_total"),
     ]):
         frame = tk.Frame(ventana_telemetria, bg='#0D2E3B')  # Fondo azul oscuro
         frame.grid(row=idx // 2, column=idx % 2, padx=10, pady=10, sticky='we')
@@ -230,27 +272,24 @@ def mostrar_telemetria_tiempo_real():
     def actualizar_telemetria():
         telemetria = obtener_telemetria()
 
-        porcentaje_general_cpu = telemetria[0]["porcentaje_general"]
-        porcentaje_gpu = telemetria[1]["porcentaje_trabajo"]
-        uso_ram = telemetria[2]["uso"]
-        total_ram = telemetria[2]["total"]
-        uso_almacenamiento_interno = telemetria[3]["interno"]["usado"]
-        total_almacenamiento_interno = telemetria[3]["interno"]["total"]
-        porcentaje_bateria = 50  # Reemplaza esto con la función para obtener el porcentaje de batería
-
-        porcentaje_total = (porcentaje_general_cpu + porcentaje_gpu + (uso_ram / total_ram) * 100 +
-                            (uso_almacenamiento_interno / total_almacenamiento_interno) * 100 + porcentaje_bateria) / 5
-
-        frames[-1][0].config(text=f"{porcentaje_total:.2f}%")  # Actualizar "Porcentaje Total"
-
         for label, data_key in frames[:-1]:  # Excluir la última etiqueta ("Porcentaje Total")
-            value = telemetria.get(data_key, "N/A")
+            if data_key == "uso_disco" or data_key == "almacenamiento_total":
+                value = f"{round(telemetria[3]['interno'][data_key] / (1024 ** 3), 2)} GB"
+            elif data_key == "uso_ram":
+                value = f"{round(telemetria[2][data_key] / (1024 ** 3), 2)} GB"
+            elif data_key in telemetria[0]:
+                value = telemetria[0][data_key]
+            elif data_key in telemetria[1]:
+                value = telemetria[1][data_key]
+            else:
+                value = "N/A"
+
             if isinstance(value, (int, float)):
                 label.config(text=f"{value:.2f}%")
             else:
                 label.config(text=str(value))
 
-        ventana_telemetria.after(1000, actualizar_telemetria)
+        ventana_telemetria.after(1000, actualizar_telemetria)  # Programar la próxima ejecución después de 1000 ms (1 segundo)
 
     actualizar_telemetria()
 

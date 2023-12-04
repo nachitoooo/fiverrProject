@@ -9,10 +9,7 @@ import GPUtil
 import platform
 import subprocess
 import matplotlib.pyplot as plt
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-import numpy as np
-from math import cos, sin, radians
-from PIL import Image, ImageDraw, ImageTk
+
 
 
 def show_error(message):

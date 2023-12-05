@@ -9,6 +9,26 @@ import GPUtil
 import platform
 import subprocess
 import matplotlib.pyplot as plt
+import clr  # Import the pythonnet clr module
+clr.AddReference('OpenHardwareMonitorLib')
+from OpenHardwareMonitor import Hardware
+
+
+def get_cpu_temperatures():
+    handle = Hardware.Computer()
+    handle.CPUEnabled = True 
+    handle.Open()  #
+    temperature_data = []
+
+    for hardware_item in handle.Hardware:
+        hardware_item.Update()  # Update the hardware data
+        if hardware_item.HardwareType == Hardware.HardwareType.CPU:
+            for sensor in hardware_item.Sensors:
+                if sensor.SensorType == Hardware.SensorType.Temperature:
+                    temperature_data.append((sensor.Name, sensor.Value))
+
+    handle.Close()  
+    return temperature_data
 
 
 
@@ -93,51 +113,20 @@ def connect_to_wifi(selected_network, password, password_dialog, wifi_status_lab
 
         password_dialog.destroy()
         
-def obtener_temperatura_cpu():
-    try:
-        if platform.system() == 'Windows':
-            # Obtener la temperatura de la CPU en Windows usando WMIC
-            result = subprocess.run(['wmic', 'cpu', 'get', 'Temperature'], capture_output=True)
-            temperature_str = result.stdout.decode('utf-8').strip().split('\n')[-1].strip()
-            if temperature_str:
-                temperature = int(temperature_str) // 10  # Convertir de décimas de grado a grados Celsius
-                return temperature
-            else:
-                return None
-        elif platform.system() == 'Linux':
-            # Obtener la temperatura de la CPU en Linux usando psutil
-            temperatures = psutil.sensors_temperatures()
-            cpu_temperature = temperatures.get('coretemp', [])
-            if cpu_temperature and cpu_temperature[0].current:
-                return cpu_temperature[0].current
-            else:
-                return None
-    except Exception as e:
-        show_error(f"Error al obtener temperatura de la CPU: {e}")
-        return None
+
+
+
     
 def obtener_telemetria():
+    cpu_temperatures = get_cpu_temperatures()
+
     cpu_info = {
         "nucleos": psutil.cpu_count(logical=False),
         "porcentaje_general": psutil.cpu_percent(),
         "porcentaje_por_nucleo": psutil.cpu_percent(percpu=True),
+        "temperaturas_cpu": dict(cpu_temperatures),
     }
 
-    # Obtener temperatura de la CPU
-    try:
-        if platform.system() == 'Windows':
-            import wmi
-            w = wmi.WMI(namespace="root/OpenHardwareMonitor")
-            temperature_info = w.Sensor()
-            cpu_temperature = next((sensor.Value for sensor in temperature_info if sensor.Name == 'Temperature CPU Core'), None)
-            cpu_info["temperatura_cpu"] = cpu_temperature if cpu_temperature else "No disponible"
-        else:
-            # Agrega aquí la lógica para obtener la temperatura en sistemas no Windows
-            cpu_info["temperatura_cpu"] = "No disponible"
-    except Exception as e:
-        cpu_info["temperatura_cpu"] = "No disponible"
-
-    # Obtener información de la GPU
     try:
         gpu = GPUtil.getGPUs()[0]
         gpu_info = {
@@ -145,16 +134,13 @@ def obtener_telemetria():
             "frecuencia": getattr(gpu, 'memoryInfo', {}).get(0, "No disponible"),  # Assuming core frequency is stored at index 0
         }
 
-        # Obtener temperatura de la GPU
-        gpu_temperature = getattr(gpu, 'temperature', "No disponible")
-        gpu_info["temperatura_gpu"] = gpu_temperature if gpu_temperature else "No disponible"
-
     except Exception as e:
         gpu_info = {
             "porcentaje_trabajo": "No disponible",
             "frecuencia": "No disponible",
             "temperatura_gpu": "No disponible",
         }
+
 
     # Obtener información de RAM
     try:
@@ -187,7 +173,6 @@ def obtener_telemetria():
             }
         }
 
-    # Obtener información adicional (puedes agregar tus propias funciones o módulos aquí)
 
     return cpu_info, gpu_info, ram_info, almacenamiento_info
 
@@ -230,6 +215,9 @@ main_toolbar.add_button(settings_button)
 
 wifi_listbox.bind("<Double-Button-1>", on_wifi_double_click)
 
+current_cpu_temperature = tk.StringVar()
+
+current_cpu_temperature = tk.StringVar()
 
 def mostrar_telemetria_tiempo_real():
     ventana_telemetria = tk.Toplevel(root)
@@ -239,14 +227,19 @@ def mostrar_telemetria_tiempo_real():
 
     frames = []
 
+    # Obtener la temperatura de la CPU
+    temperatures = get_cpu_temperatures()
+    cpu_temperature = temperatures[0][1] if temperatures else "N/A"
+    current_cpu_temperature.set(cpu_temperature)
+
     # Crear un frame para cada conjunto de etiquetas y porcentajes
     for idx, (label_text, data_key) in enumerate([
         ("Porcentaje CPU:", "porcentaje_general"),
         ("Uso de RAM:", "uso_ram"),
-        ("Temperatura CPU:", "temperatura_cpu"),  # Agregado: Temperatura CPU
-        ("Porcentaje GPU:", "porcentaje_trabajo"),  # Agregado: Porcentaje GPU
-        ("Frecuencia GPU:", "frecuencia"),  # Agregado: Frecuencia GPU
-        ("Temperatura GPU:", "temperatura_gpu"),  # Agregado: Temperatura GPU
+        ("Temperatura CPU:", current_cpu_temperature),  # Agregado: Temperatura CPU
+        ("Porcentaje GPU:", "porcentaje_trabajo"),
+        ("Frecuencia GPU:", "frecuencia"),
+        ("Temperatura GPU:", "temperatura_gpu"),
         ("Uso de almacenamiento interno:", "uso_disco"),
         ("Almacenamiento total del Disco:", "almacenamiento_total"),
         ("Porcentaje Batería:", "porcentaje_bateria"),
@@ -257,7 +250,7 @@ def mostrar_telemetria_tiempo_real():
         title_label = tk.Label(frame, text=label_text, font=('Helvetica', 18), fg='white', bg='#0D2E3B')  # Texto blanco, fondo azul oscuro
         title_label.pack(pady=(10, 5))  # Aumenté el espaciado superior
 
-        value_label = tk.Label(frame, text="0%", font=('Helvetica', 18), fg='white', bg='#0D2E3B')  # Texto blanco, fondo azul oscuro
+        value_label = tk.Label(frame, textvariable=data_key, font=('Helvetica', 18), fg='white', bg='#0D2E3B')  # Texto blanco, fondo azul oscuro
         value_label.pack(pady=(0, 10))  # Aumenté el espaciado inferior
 
         frames.append((value_label, data_key))
@@ -270,21 +263,20 @@ def mostrar_telemetria_tiempo_real():
         telemetria = obtener_telemetria()
 
         for label, data_key in frames[:-1]:  # Excluir la última etiqueta ("Porcentaje Total")
-            if data_key == "uso_disco" or data_key == "almacenamiento_total":
-                value = f"{round(telemetria[3]['interno'][data_key] / (1024 ** 3), 2)} GB"
-            elif data_key == "uso_ram":
-                value = f"{round(telemetria[2][data_key] / (1024 ** 3), 2)} GB"
-            elif data_key in telemetria[0]:
-                value = telemetria[0][data_key]
-            elif data_key in telemetria[1]:
-                value = telemetria[1][data_key]
+            if data_key == "temperaturas_cpu":
+                label.config(text=current_cpu_temperature.get())
             else:
-                value = "N/A"
+                value = telemetria[0][data_key] if data_key in telemetria[0] else "N/A"
 
-            if isinstance(value, (int, float)):
-                label.config(text=f"{value:.2f}%")
-            else:
-                label.config(text=str(value))
+                if data_key == "uso_disco" or data_key == "almacenamiento_total":
+                    value = f"{round(telemetria[3]['interno'][data_key] / (1024 ** 3), 2)} GB"
+                elif data_key == "uso_ram":
+                    value = f"{round(telemetria[2][data_key] / (1024 ** 3), 2)} GB"
+
+                if isinstance(value, (int, float)):
+                    label.config(text=f"{value:.2f}%")
+                else:
+                    label.config(text=str(value))
 
         ventana_telemetria.after(1000, actualizar_telemetria)  # Programar la próxima ejecución después de 1000 ms (1 segundo)
 

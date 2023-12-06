@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import messagebox, ttk, Canvas
+from tkinter import messagebox, ttk, Canvas, Scrollbar
 import time
 import pywifi
 from customtkinter import *
@@ -11,6 +11,8 @@ import subprocess
 import matplotlib.pyplot as plt
 import math
 import clr  # Import the pythonnet clr module
+from PIL import Image, ImageTk
+
 clr.AddReference('OpenHardwareMonitorLib')
 from OpenHardwareMonitor import Hardware
 
@@ -199,7 +201,8 @@ def obtener_telemetria():
 root = CTk()
 root.title("Wi-Fi Escáner")
 root.state('zoomed')
-scan_button = CTkButton(root, text="Escanear redes Wi-FI", command=scan_wifi_networks)
+wifi_button_icon = CTkImage(Image.open("wifi.png"))
+scan_button = CTkButton(root, text="Escanear redes Wi-FI", font=("Helvetica",12,"bold"), command=scan_wifi_networks, image=wifi_button_icon)
 scan_button.pack(pady=10)
 
 scrollbar = tk.Scrollbar(root, orient=tk.VERTICAL)
@@ -220,7 +223,7 @@ class CTkToolbar(tk.Frame):
         self.buttons.append(button)
 class Thermometer:
 
-    def init(self, canvas, x, y, width, height, min_value, max_value, color):
+    def __init__(self, canvas, x, y, width, height, min_value, max_value, color):
         self.canvas = canvas
         self.x = x
         self.y = y
@@ -243,13 +246,22 @@ class Thermometer:
 main_toolbar = CTkToolbar(root, bg="#171718")
 main_toolbar.pack(side=tk.TOP, fill=tk.X)
 
-monitor_button = CTkButton(main_toolbar, text="Monitor")
-storage_button = CTkButton(main_toolbar, text="Almacenamiento")
-settings_button = CTkButton(main_toolbar, text="Configuración")
+monitorIcon = CTkImage(Image.open("velocimetro.png"))
+monitor_button = CTkButton(main_toolbar, text="Monitor",font=("Helvetica",12,"bold"), text_color="black", image=monitorIcon)
+
+search_deviceIcon = CTkImage(Image.open("search-engine-optimization.png"))
+search_device_button = CTkButton(main_toolbar, text="Buscar dispositivos", font=("Helvetica", 12, "bold"), text_color="black", image=search_deviceIcon)
+
+infoIcon = CTkImage(Image.open("info.png"))
+infoButton = CTkButton(main_toolbar, text="Info", font=("Helvetica", 12, "bold"), text_color="black", image=infoIcon)
+logsButtonIcon = CTkImage(Image.open("logs.png"))
+logsButton = CTkButton(main_toolbar, text="Registros", font=("Helvetica", 12, "bold"), text_color="black", image=logsButtonIcon)
 
 main_toolbar.add_button(monitor_button)
-main_toolbar.add_button(storage_button)
-main_toolbar.add_button(settings_button)
+main_toolbar.add_button(search_device_button)
+main_toolbar.add_button(infoButton)
+main_toolbar.add_button(logsButton)
+
 
 wifi_listbox.bind("<Double-Button-1>", on_wifi_double_click)
 
@@ -259,102 +271,156 @@ current_cpu_temperature = tk.StringVar()
 
 current_cpu_temperature = tk.StringVar()
 
-import tkinter as tk
-
+square_size = 200
+num_columns = 2
 def mostrar_telemetria_tiempo_real():
-
-
-    # Crear una instancia del termómetro pasando el objeto de lienzo
-
     label_temperatura = tk.Label(root, text="Temperatura CPU:", font=('Arial', 18), fg='white', bg='#0D2E3B')
     label_temperatura.pack()
 
     ventana_telemetria = tk.Toplevel(root)
     ventana_telemetria.title("Telemetría en Tiempo Real")
     ventana_telemetria.geometry("800x600")
-    ventana_telemetria.configure(bg='#0A2732')  # Fondo gris oscuro
+    ventana_telemetria.configure(bg='#0A2732')
+    ventana_telemetria.columnconfigure(0, weight=1)
+
+
+    frame_scroll = tk.Frame(ventana_telemetria, bg='#0A2732')
+    frame_scroll.pack(fill=tk.BOTH, expand=True)
+    
+    canvas_scroll = Canvas(frame_scroll, bg='#0A2732')
+    canvas_scroll.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+    
+
+    frame_telemetria = tk.Frame(canvas_scroll, bg='#111')
+    frame_telemetria.pack(expand=True, padx=10, pady=10)
+    
+    frame_telemetria.place(in_=canvas_scroll, anchor="center", relx=.5, rely=.5)
+    scrollbar = Scrollbar(frame_scroll, orient=tk.VERTICAL, command=canvas_scroll.yview)
+    scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+    canvas_scroll.configure(yscrollcommand=scrollbar.set)
+    frame_telemetria.bind("<Configure>", lambda e: canvas_scroll.configure(scrollregion=canvas_scroll.bbox("all")))
 
     frames = []
 
-    # Crear un frame cuadrado para cada conjunto de etiquetas y porcentajes
     for idx, (label_text, data_key) in enumerate([
         ("Porcentaje CPU:", "porcentaje_general"),
-        ("Núm. de Cores:", "num_cores"),  # Agregado: Número de cores
-        ("% Trabajo CPU (general):", "porcentaje_general"),  # Actualizado: % Trabajo (general)
+        ("Núm. de Cores:", "num_cores"),
+        ("% Trabajo CPU (general):", "porcentaje_general"),
         ("Temperatura CPU:", "temperaturas_cpu"),
-        ("% Trabajo CPU (cada core):", "porcentaje_core"),  # Agregado: % Trabajo (cada core)
+        ("% Trabajo CPU (cada core):", "porcentaje_core"),
         ("Porcentaje GPU:", "porcentaje_trabajo"),
         ("Frecuencia GPU:", "frecuencia"),
         ("Temperatura GPU:", "temperatura_gpu"),
         ("Uso de RAM:", "uso_ram"),
-        ("Almacenamiento Interno Usado:", "uso_disco"),  # Actualizado: Usado
-        ("Almacenamiento Interno Total:", "almacenamiento_total"),  # Actualizado: Total
-        ("Power Consumo Total (W):", "power_consumo"),  # Agregado: Power consumo total (en W)
+        ("Almacenamiento Interno Usado:", "uso_disco"),
+        ("Almacenamiento Interno Total:", "almacenamiento_total"),
+        ("Power Consumo Total (W):", "power_consumo"),
         ("Porcentaje Batería:", "porcentaje_bateria"),
-        ("Tiempo Autonomía Batería:", "tiempo_autonomia"),  # Agregado: Tiempo autonomía de la batería
-        ("Frecuencia EMC:", "frecuencia_emc"),  # Agregado: Frecuencia EMC
-        ("Temperatura SOC:", "temperatura_soc"),  # Agregado: Temperatura SOC
-        ("Voltaje Rail1:", "voltaje_rail1"),  # Agregado: Voltaje Rail1
-        ("Voltaje Rail2:", "voltaje_rail2"),  # Agregado: Voltaje Rail2
-        ("Voltaje Rail3:", "voltaje_rail3"),  # Agregado: Voltaje Rail3
+        ("Tiempo Autonomía Batería:", "tiempo_autonomia"),
+        ("Frecuencia EMC:", "frecuencia_emc"),
+        ("Temperatura SOC:", "temperatura_soc"),
+        ("Voltaje Rail1:", "voltaje_rail1"),
+        ("Voltaje Rail2:", "voltaje_rail2"),
+        ("Voltaje Rail3:", "voltaje_rail3"),
     ]):
-        frame = tk.Frame(ventana_telemetria, bg='#0D2E3B', highlightbackground="white", highlightthickness=2, relief="solid", width=200, height=200)  # Fondo azul oscuro, borde redondeado
-        frame.grid(row=idx // 2, column=idx % 2, padx=10, pady=10, sticky='nsew')
-
-        title_label = tk.Label(frame, text=label_text, font=('Arial', 14), fg='white', bg='#0D2E3B')  # Texto blanco, fondo azul oscuro, letra bonita
+        frame = tk.Frame(
+            frame_telemetria,
+            bg='#0D2E3B',
+            highlightbackground="white",
+            highlightthickness=2,
+            relief="solid",
+            width=square_size,
+            height=square_size
+        )
+        frame.grid(row=idx // num_columns, column=idx % num_columns, padx=10, pady=10, sticky='nsew')
+        title_label = tk.Label(frame, text=label_text, font=('Arial', 14), fg='white', bg='#0D2E3B')
         title_label.pack()
+        
+        # -----------Iconos------------
+        if data_key == "porcentaje_bateria":
+            battery_image = Image.open("bateria.png")  
+            battery_image = battery_image.resize((51, 34))  
+            battery_icon = ImageTk.PhotoImage(battery_image)
+            battery_label = tk.Label(frame, image=battery_icon, bg='#0D2E3B')
+            battery_label.image = battery_icon  
+            battery_label.pack()
+
+        if data_key == "uso_ram":
+            ram_image = Image.open("ram.png")
+            ram_image = ram_image.resize((50, 50))
+            ram_icon = ImageTk.PhotoImage(ram_image)
+            ram_label = tk.Label(frame, image=ram_icon, bg='#0D2E3B')
+            ram_label.image = ram_icon
+            ram_label.pack()
+        
+        if data_key == "porcentaje_general":
+            cpu_image = Image.open("cpu.png")  
+            cpu_image = cpu_image.resize((50, 50))  
+            cpu_icon = ImageTk.PhotoImage(cpu_image)
+            cpu_label = tk.Label(frame, image=cpu_icon, bg='#0D2E3B')
+            cpu_label.image = cpu_icon  
+            cpu_label.pack()
+
+        if data_key == "frecuencia":
+            gpu_image = Image.open("gpu.png")  
+            gpu_image = gpu_image.resize((50, 50))  
+            gpu_icon = ImageTk.PhotoImage(gpu_image)
+            gpu_label = tk.Label(frame, image=gpu_icon, bg='#0D2E3B')
+            gpu_label.image = gpu_icon  
+            gpu_label.pack()
+        
+        if (data_key == "voltaje_rail1" or data_key == "voltaje_rail2" or data_key == "voltaje_rail3"):
+            voltaje_image = Image.open("voltaje.png")  
+            voltaje_image = voltaje_image.resize((30, 30))  
+            voltaje_icon = ImageTk.PhotoImage(voltaje_image)
+            voltaje_label = tk.Label(frame, image=voltaje_icon, bg='#0D2E3B')
+            voltaje_label.image = voltaje_icon  
+            voltaje_label.pack()
+        # -----------Iconos------------
 
         if data_key == "temperaturas_cpu":
-            # Crear una representación gráfica de una barra de progreso circular
-            canvas = tk.Canvas(frame, width=200, height=200, bg='#0D2E3B', highlightthickness=0)
-            canvas.pack()
+            canvas = tk.Canvas(frame, width=square_size, height=square_size, bg='#0D2E3B', highlightthickness=0)
+            
+            # canvas.pack()
 
-            # Definir los colores
-            verde = '#00FF00'
-            amarillo = '#FFFF00'
-            rojo = '#FF0000'
+            # verde = '#00FF00'
+            # amarillo = '#FFFF00'
+            # rojo = '#FF0000'
 
-            # Calcular los ángulos de inicio y fin de cada color
-            inicio_verde = 90
-            fin_verde = 0
-            inicio_amarillo = 0
-            fin_amarillo = -90
-            inicio_rojo = -90
-            fin_rojo = -180
+            # inicio_verde = 90
+            # fin_verde = 0
+            # inicio_amarillo = 0
+            # fin_amarillo = -90
+            # inicio_rojo = -90
+            # fin_rojo = -180
 
-            # Crear arcos con colores personalizados y gradiente
-            for i in range(inicio_verde, fin_verde, -1):
-                canvas.create_arc(10, 10, 190, 190, start=i, extent=-1, outline=verde, width=2)
-            for i in range(inicio_amarillo, fin_amarillo, -1):
-                canvas.create_arc(10, 10, 190, 190, start=i, extent=-1, outline=amarillo, width=2)
-            for i in range(inicio_rojo, fin_rojo, -1):
-                canvas.create_arc(10, 10, 190, 190, start=i, extent=-1, outline=rojo, width=2)
+            # for i in range(inicio_verde, fin_verde, -1):
+            #     canvas.create_arc(10, 10, square_size - 10, square_size - 10, start=i, extent=-1, outline=verde, width=2)
+            # for i in range(inicio_amarillo, fin_amarillo, -1):
+            #     canvas.create_arc(10, 10, square_size - 10, square_size - 10, start=i, extent=-1, outline=amarillo, width=2)
+            # for i in range(inicio_rojo, fin_rojo, -1):
+            #     canvas.create_arc(10, 10, square_size - 10, square_size - 10, start=i, extent=-1, outline=rojo, width=2)
 
-            # Flecha indicadora
-            flecha = canvas.create_line(100, 100, 100, 20, fill='white', width=2)
+            # flecha = canvas.create_line(square_size // 2, square_size // 2, square_size // 2, square_size // 4, fill='white', width=2)
 
-            # Etiqueta para mostrar la temperatura
-            temperatura_label = tk.Label(frame, text="0°C", font=('Arial', 14), fg='white', bg='#0D2E3B')
-            temperatura_label.pack(side="right", anchor="e")
+            # temperatura_label = tk.Label(frame, text="0°C", font=('Arial', 14), fg='white', bg='#0D2E3B')
+            # temperatura_label.pack(side="right", anchor="e")
 
-            def actualizar_barra_progreso():
-                nonlocal flecha
-                temperatures = get_cpu_temperatures()
-                temperatura_actual = temperatures[0][1] if temperatures else 0
+            # def actualizar_barra_progreso():
+            #     nonlocal flecha
+            #     temperatures = get_cpu_temperatures()
+            #     temperatura_actual = temperatures[0][1] if temperatures else 0
 
-                # Calcular el ángulo correspondiente al porcentaje de temperatura
-                angulo = temperatura_actual * 1.8  # 1.8 es la relación para convertir el porcentaje a grados (180 grados / 100%)
+            #     angulo = temperatura_actual * 1.8
 
-                # Actualizar la posición de la flecha
-                canvas.coords(flecha, 100, 100, 100 + 70 * math.sin(math.radians(angulo)), 100 - 70 * math.cos(math.radians(angulo)))
+            #     canvas.coords(flecha, square_size // 2, square_size // 2, square_size // 2 + square_size // 4 * math.sin(math.radians(angulo)), square_size // 2 - square_size // 4 * math.cos(math.radians(angulo)))
 
-                # Actualizar la etiqueta de temperatura
-                temperatura_label.config(text=f"{temperatura_actual}°C")
+            #     temperatura_label.config(text=f"{temperatura_actual}°C")
 
-                value_label.config(text=str(temperatura_actual) + "°C")
-                ventana_telemetria.after(1000, actualizar_barra_progreso)
+            #     value_label.config(text=str(temperatura_actual) + "°C")
+            #     ventana_telemetria.after(1000, actualizar_barra_progreso)
 
-            actualizar_barra_progreso()
+            # actualizar_barra_progreso()
 
         else:
             value_label = tk.Label(frame, text="0%", font=('Arial', 18), fg='white', bg='#0D2E3B')
@@ -362,7 +428,6 @@ def mostrar_telemetria_tiempo_real():
 
         frames.append((value_label, data_key))
 
-    # Configurar las columnas y filas para centrar los elementos horizontal y verticalmente
     for i in range(2):
         ventana_telemetria.columnconfigure(i, weight=1)
         ventana_telemetria.rowconfigure(i, weight=1)
@@ -375,11 +440,11 @@ def mostrar_telemetria_tiempo_real():
         cpu_temperature = temperatures[0][1] if temperatures else "N/A"
         current_cpu_temperature.set(cpu_temperature)
 
-        for label, data_key in frames[:-1]:  # Excluir la última etiqueta ("Porcentaje Total")
+        for label, data_key in frames[:-1]:
             if data_key == "temperaturas_cpu":
                 label.config(text=current_cpu_temperature.get())
             else:
-                value = telemetria[0][data_key] if data_key in telemetria[0] else "N/A"
+                value = telemetria[0][data_key] if data_key in telemetria[0] else ""
                 if data_key == "uso_disco" or data_key == "almacenamiento_total":
                     value = f"{round(telemetria[3]['interno'][data_key] / (1024 ** 3), 2)} GB"
                 elif data_key == "uso_ram":
@@ -396,12 +461,12 @@ def mostrar_telemetria_tiempo_real():
                 else:
                     label.config(text=str(value))
 
-        ventana_telemetria.after(1000, actualizar_telemetria)  # Programar la próxima ejecución después de 1000 ms (1 segundo)
+        ventana_telemetria.after(1000, actualizar_telemetria)
 
-    actualizar_telemetria()
+    # comentado para testear
+    # actualizar_telemetria()
 
     ventana_telemetria.mainloop()
-
 
 tiempo_real_button = CTkButton(main_toolbar, text="Telemetría en Tiempo Real", command=mostrar_telemetria_tiempo_real)
 main_toolbar.add_button(tiempo_real_button)

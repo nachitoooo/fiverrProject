@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import messagebox, ttk, Canvas
+from tkinter import messagebox, ttk, Canvas, Scrollbar
 import time
 import pywifi
 from customtkinter import *
@@ -261,7 +261,6 @@ current_cpu_temperature = tk.StringVar()
 
 current_cpu_temperature = tk.StringVar()
 
-import tkinter as tk
 square_size = 200
 num_columns = 2
 def mostrar_telemetria_tiempo_real():
@@ -272,21 +271,23 @@ def mostrar_telemetria_tiempo_real():
     ventana_telemetria.title("Telemetría en Tiempo Real")
     ventana_telemetria.geometry("800x600")
     ventana_telemetria.configure(bg='#0A2732')
+    ventana_telemetria.columnconfigure(0, weight=1)
+
 
     frame_scroll = tk.Frame(ventana_telemetria, bg='#0A2732')
     frame_scroll.pack(fill=tk.BOTH, expand=True)
-
-    canvas_scroll = tk.Canvas(frame_scroll, bg='#0A2732')
+    
+    canvas_scroll = Canvas(frame_scroll, bg='#0A2732')
     canvas_scroll.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+    
 
-    scrollbar = ttk.Scrollbar(frame_scroll, orient=tk.VERTICAL, command=canvas_scroll.yview)
+    frame_telemetria = tk.Frame(canvas_scroll, bg='#111')
+    frame_telemetria.pack(expand=True, padx=10, pady=10)
+    
+    frame_telemetria.place(in_=canvas_scroll, anchor="center", relx=.5, rely=.5)
+    scrollbar = Scrollbar(frame_scroll, orient=tk.VERTICAL, command=canvas_scroll.yview)
     scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-
     canvas_scroll.configure(yscrollcommand=scrollbar.set)
-
-    frame_telemetria = tk.Frame(canvas_scroll, bg='#0A2732')
-    canvas_scroll.create_window((0, 0), window=frame_telemetria, anchor='nw')
-
     frame_telemetria.bind("<Configure>", lambda e: canvas_scroll.configure(scrollregion=canvas_scroll.bbox("all")))
 
     frames = []
@@ -324,7 +325,6 @@ def mostrar_telemetria_tiempo_real():
         frame.grid(row=idx // num_columns, column=idx % num_columns, padx=10, pady=10, sticky='nsew')
         title_label = tk.Label(frame, text=label_text, font=('Arial', 14), fg='white', bg='#0D2E3B')
         title_label.pack()
-
         
         # -----------Iconos------------
         if data_key == "porcentaje_bateria":
@@ -370,8 +370,6 @@ def mostrar_telemetria_tiempo_real():
 
         if data_key == "temperaturas_cpu":
             canvas = tk.Canvas(frame, width=square_size, height=square_size, bg='#0D2E3B', highlightthickness=0)
-
-
             
             # canvas.pack()
 
@@ -455,7 +453,8 @@ def mostrar_telemetria_tiempo_real():
 
         ventana_telemetria.after(1000, actualizar_telemetria)
 
-    actualizar_telemetria()
+    # comentado para testear
+    # actualizar_telemetria()
 
     ventana_telemetria.mainloop()
 

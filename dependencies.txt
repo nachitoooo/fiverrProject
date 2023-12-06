@@ -1,0 +1,8 @@
+wifi
+comtypes
+customtkinter
+psutil
+packaging
+matplotlib
+GPUtil
+pythonnet

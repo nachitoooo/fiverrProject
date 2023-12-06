@@ -1,0 +1,38 @@
+elemetria:
+CPU:
+- nº de cores
+- % Trabajo (general)
+- % Trabajo (cada core)
+- Temperatura CPU
+
+GPU:
+- % de trabajo
+- Frecuencia
+- Temperatura GPU
+
+RAM:
+- GB en uso
+- GB total
+
+Almacenamiento:
+
+    Interno:
+        - usado
+        - total
+
+SD:
+- usado
+- total
+- Power consumo total (en W)
+- % de bateria
+- tiempo autonomia bat
+
+-Frecuencia EMC
+
+-Temperatura SOC
+
+-Voltaje Rail1
+
+-Voltaje rail2
+
+-Voltaje rail3

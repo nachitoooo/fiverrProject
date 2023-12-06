@@ -373,46 +373,46 @@ def mostrar_telemetria_tiempo_real():
 
 
             
-            canvas.pack()
+            # canvas.pack()
 
-            verde = '#00FF00'
-            amarillo = '#FFFF00'
-            rojo = '#FF0000'
+            # verde = '#00FF00'
+            # amarillo = '#FFFF00'
+            # rojo = '#FF0000'
 
-            inicio_verde = 90
-            fin_verde = 0
-            inicio_amarillo = 0
-            fin_amarillo = -90
-            inicio_rojo = -90
-            fin_rojo = -180
+            # inicio_verde = 90
+            # fin_verde = 0
+            # inicio_amarillo = 0
+            # fin_amarillo = -90
+            # inicio_rojo = -90
+            # fin_rojo = -180
 
-            for i in range(inicio_verde, fin_verde, -1):
-                canvas.create_arc(10, 10, square_size - 10, square_size - 10, start=i, extent=-1, outline=verde, width=2)
-            for i in range(inicio_amarillo, fin_amarillo, -1):
-                canvas.create_arc(10, 10, square_size - 10, square_size - 10, start=i, extent=-1, outline=amarillo, width=2)
-            for i in range(inicio_rojo, fin_rojo, -1):
-                canvas.create_arc(10, 10, square_size - 10, square_size - 10, start=i, extent=-1, outline=rojo, width=2)
+            # for i in range(inicio_verde, fin_verde, -1):
+            #     canvas.create_arc(10, 10, square_size - 10, square_size - 10, start=i, extent=-1, outline=verde, width=2)
+            # for i in range(inicio_amarillo, fin_amarillo, -1):
+            #     canvas.create_arc(10, 10, square_size - 10, square_size - 10, start=i, extent=-1, outline=amarillo, width=2)
+            # for i in range(inicio_rojo, fin_rojo, -1):
+            #     canvas.create_arc(10, 10, square_size - 10, square_size - 10, start=i, extent=-1, outline=rojo, width=2)
 
-            flecha = canvas.create_line(square_size // 2, square_size // 2, square_size // 2, square_size // 4, fill='white', width=2)
+            # flecha = canvas.create_line(square_size // 2, square_size // 2, square_size // 2, square_size // 4, fill='white', width=2)
 
-            temperatura_label = tk.Label(frame, text="0°C", font=('Arial', 14), fg='white', bg='#0D2E3B')
-            temperatura_label.pack(side="right", anchor="e")
+            # temperatura_label = tk.Label(frame, text="0°C", font=('Arial', 14), fg='white', bg='#0D2E3B')
+            # temperatura_label.pack(side="right", anchor="e")
 
-            def actualizar_barra_progreso():
-                nonlocal flecha
-                temperatures = get_cpu_temperatures()
-                temperatura_actual = temperatures[0][1] if temperatures else 0
+            # def actualizar_barra_progreso():
+            #     nonlocal flecha
+            #     temperatures = get_cpu_temperatures()
+            #     temperatura_actual = temperatures[0][1] if temperatures else 0
 
-                angulo = temperatura_actual * 1.8
+            #     angulo = temperatura_actual * 1.8
 
-                canvas.coords(flecha, square_size // 2, square_size // 2, square_size // 2 + square_size // 4 * math.sin(math.radians(angulo)), square_size // 2 - square_size // 4 * math.cos(math.radians(angulo)))
+            #     canvas.coords(flecha, square_size // 2, square_size // 2, square_size // 2 + square_size // 4 * math.sin(math.radians(angulo)), square_size // 2 - square_size // 4 * math.cos(math.radians(angulo)))
 
-                temperatura_label.config(text=f"{temperatura_actual}°C")
+            #     temperatura_label.config(text=f"{temperatura_actual}°C")
 
-                value_label.config(text=str(temperatura_actual) + "°C")
-                ventana_telemetria.after(1000, actualizar_barra_progreso)
+            #     value_label.config(text=str(temperatura_actual) + "°C")
+            #     ventana_telemetria.after(1000, actualizar_barra_progreso)
 
-            actualizar_barra_progreso()
+            # actualizar_barra_progreso()
 
         else:
             value_label = tk.Label(frame, text="0%", font=('Arial', 18), fg='white', bg='#0D2E3B')

@@ -16,6 +16,7 @@ from PIL import Image, ImageTk
 clr.AddReference('OpenHardwareMonitorLib')
 from OpenHardwareMonitor import Hardware
 
+
 def get_cpu_temperatures():
     handle = Hardware.Computer()
     handle.CPUEnabled = True 
@@ -200,8 +201,7 @@ def obtener_telemetria():
 root = CTk()
 root.title("Wi-Fi Escáner")
 root.state('zoomed')
-wifi_button_icon = CTkImage(Image.open("wifi.png"))
-scan_button = CTkButton(root, text="Escanear redes Wi-FI", font=("Helvetica",12,"bold"), command=scan_wifi_networks, image=wifi_button_icon)
+scan_button = CTkButton(root, text="Escanear redes Wi-FI", command=scan_wifi_networks)
 scan_button.pack(pady=10)
 
 scrollbar = tk.Scrollbar(root, orient=tk.VERTICAL)
@@ -222,7 +222,7 @@ class CTkToolbar(tk.Frame):
         self.buttons.append(button)
 class Thermometer:
 
-    def init(self, canvas, x, y, width, height, min_value, max_value, color):
+    def __init__(self, canvas, x, y, width, height, min_value, max_value, color):
         self.canvas = canvas
         self.x = x
         self.y = y
@@ -245,22 +245,13 @@ class Thermometer:
 main_toolbar = CTkToolbar(root, bg="#171718")
 main_toolbar.pack(side=tk.TOP, fill=tk.X)
 
-monitorIcon = CTkImage(Image.open("velocimetro.png"))
-monitor_button = CTkButton(main_toolbar, text="Monitor",font=("Helvetica",12,"bold"), text_color="black", image=monitorIcon)
-
-search_deviceIcon = CTkImage(Image.open("search-engine-optimization.png"))
-search_device_button = CTkButton(main_toolbar, text="Buscar dispositivos", font=("Helvetica", 12, "bold"), text_color="black", image=search_deviceIcon)
-
-infoIcon = CTkImage(Image.open("info.png"))
-infoButton = CTkButton(main_toolbar, text="Info", font=("Helvetica", 12, "bold"), text_color="black", image=infoIcon)
-logsButtonIcon = CTkImage(Image.open("logs.png"))
-logsButton = CTkButton(main_toolbar, text="Registros", font=("Helvetica", 12, "bold"), text_color="black", image=logsButtonIcon)
+monitor_button = CTkButton(main_toolbar, text="Monitor")
+storage_button = CTkButton(main_toolbar, text="Almacenamiento")
+settings_button = CTkButton(main_toolbar, text="Configuración")
 
 main_toolbar.add_button(monitor_button)
-main_toolbar.add_button(search_device_button)
-main_toolbar.add_button(infoButton)
-main_toolbar.add_button(logsButton)
-
+main_toolbar.add_button(storage_button)
+main_toolbar.add_button(settings_button)
 
 wifi_listbox.bind("<Double-Button-1>", on_wifi_double_click)
 
@@ -273,30 +264,31 @@ current_cpu_temperature = tk.StringVar()
 square_size = 200
 num_columns = 2
 def mostrar_telemetria_tiempo_real():
-    label_temperatura = tk.Label(root, text="Temperatura CPU:", font=('Arial', 18), fg='white', bg='#06061f')
+    label_temperatura = tk.Label(root, text="Temperatura CPU:", font=('Arial', 18), fg='white', bg='#0D2E3B')
     label_temperatura.pack()
 
     ventana_telemetria = tk.Toplevel(root)
     ventana_telemetria.title("Telemetría en Tiempo Real")
-    alto_pantalla = ventana_telemetria.winfo_screenheight()
-    ventana_telemetria.geometry(f"600x{alto_pantalla}")
-    ventana_telemetria.resizable(False, False)
-    ventana_telemetria.configure(bg='#06061f')
+    ventana_telemetria.geometry("800x600")
+    ventana_telemetria.configure(bg='#0A2732')
+    ventana_telemetria.columnconfigure(0, weight=1)
 
 
-    canvas_scroll = tk.Canvas(ventana_telemetria, bg='#06061f')
+    frame_scroll = tk.Frame(ventana_telemetria, bg='#0A2732')
+    frame_scroll.pack(fill=tk.BOTH, expand=True)
+    
+    canvas_scroll = Canvas(frame_scroll, bg='#0A2732')
     canvas_scroll.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+    
 
-    scrollbar = tk.Scrollbar(ventana_telemetria, orient="vertical", command=canvas_scroll.yview)
-    scrollbar.pack(side=tk.RIGHT, fill="y")
-
-    canvas_scroll.configure(yscrollcommand=scrollbar.set)
-    canvas_scroll.bind('<Configure>', lambda e: canvas_scroll.configure(scrollregion=canvas_scroll.bbox("all")))
-
-    frame_telemetria = tk.Frame(canvas_scroll, bg='#0a0c3b')
+    frame_telemetria = tk.Frame(canvas_scroll, bg='#111')
     frame_telemetria.pack(expand=True, padx=10, pady=10)
-
-    canvas_scroll.create_window((0,0), window=frame_telemetria, anchor="nw")
+    
+    frame_telemetria.place(in_=canvas_scroll, anchor="center", relx=.5, rely=.5)
+    scrollbar = Scrollbar(frame_scroll, orient=tk.VERTICAL, command=canvas_scroll.yview)
+    scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+    canvas_scroll.configure(yscrollcommand=scrollbar.set)
+    frame_telemetria.bind("<Configure>", lambda e: canvas_scroll.configure(scrollregion=canvas_scroll.bbox("all")))
 
     frames = []
 
@@ -323,7 +315,7 @@ def mostrar_telemetria_tiempo_real():
     ]):
         frame = tk.Frame(
             frame_telemetria,
-            bg='#06061f',
+            bg='#0D2E3B',
             highlightbackground="white",
             highlightthickness=2,
             relief="solid",
@@ -331,7 +323,7 @@ def mostrar_telemetria_tiempo_real():
             height=square_size
         )
         frame.grid(row=idx // num_columns, column=idx % num_columns, padx=10, pady=10, sticky='nsew')
-        title_label = tk.Label(frame, text=label_text, font=('Arial', 14), fg='#3baaff', bg='#06061f')
+        title_label = tk.Label(frame, text=label_text, font=('Arial', 14), fg='white', bg='#0D2E3B')
         title_label.pack()
         
         # -----------Iconos------------
@@ -339,84 +331,23 @@ def mostrar_telemetria_tiempo_real():
             battery_image = Image.open("bateria.png")  
             battery_image = battery_image.resize((51, 34))  
             battery_icon = ImageTk.PhotoImage(battery_image)
-            battery_label = tk.Label(frame, image=battery_icon, bg='#06061f')
+            battery_label = tk.Label(frame, image=battery_icon, bg='#0D2E3B')
             battery_label.image = battery_icon  
             battery_label.pack()
-
-        if data_key == "frecuencia_emc":
-            thunder = Image.open("thunder.png")  
-            thunder = thunder.resize((51, 34))  
-            thundericon = ImageTk.PhotoImage(thunder)
-            thunder_label = tk.Label(frame, image=thundericon, bg='#06061f')
-            thunder_label.image = thundericon  
-            thunder_label.pack()
-        if data_key == "temperatura_soc":
-            velocimetro2 = Image.open("velocimetro.png")  
-            velocimetro2 = velocimetro2.resize((51, 34))  
-            velocimetroicon = ImageTk.PhotoImage(velocimetro)
-            velocimetro_label = tk.Label(frame, image=velocimetroicon, bg='#06061f')
-            velocimetro_label.image = velocimetroicon  
-            velocimetro_label.pack()
-        
 
         if data_key == "uso_ram":
             ram_image = Image.open("ram.png")
             ram_image = ram_image.resize((50, 50))
             ram_icon = ImageTk.PhotoImage(ram_image)
-            ram_label = tk.Label(frame, image=ram_icon, bg='#06061f')
+            ram_label = tk.Label(frame, image=ram_icon, bg='#0D2E3B')
             ram_label.image = ram_icon
             ram_label.pack()
-        if data_key == "num_cores":
-            cpu2 = Image.open("cpu2.png")
-            cpu2 = cpu2.resize((50, 50))
-            cpu2icon = ImageTk.PhotoImage(cpu2)
-            cpu_label = tk.Label(frame, image=cpu2icon, bg='#06061f')
-            cpu_label.image = cpu2icon
-            cpu_label.pack()
-
-        if data_key == "porcentaje_core":
-            cpu3 = Image.open("cpu.png")
-            cpu3 = cpu3.resize((50, 50))
-            cpu3icon = ImageTk.PhotoImage(cpu3)
-            cpu3_label = tk.Label(frame, image=cpu3icon, bg='#06061f')
-            cpu3_label.image = cpu3icon
-            cpu3_label.pack()
-
-        if data_key == "uso_disco":
-            disco_image = Image.open("hdd.png")
-            disco_image = disco_image.resize((50, 50))
-            disco_icon = ImageTk.PhotoImage(disco_image)
-            disco_label = tk.Label(frame, image=disco_icon, bg='#06061f')
-            disco_label.image = disco_icon
-            disco_label.pack()
-        if data_key == "tiempo_autonomia":
-            tiempo = Image.open("reloj-de-arena.png")
-            tiempo = tiempo.resize((50, 50))
-            tiempo_icon = ImageTk.PhotoImage(tiempo)
-            tiempo_label = tk.Label(frame, image=tiempo_icon, bg='#06061f')
-            tiempo_label.image = tiempo_icon
-            tiempo_label.pack()
-        if data_key == "temperaturas_cpu":
-            velocimetro = Image.open("velocimetro.png")
-            velocimetro = velocimetro.resize((50, 50))
-            velocimetroicon = ImageTk.PhotoImage(velocimetro)
-            velocimetro_label = tk.Label(frame, image=velocimetroicon, bg='#06061f')
-            velocimetro_label.image = velocimetroicon
-            velocimetro_label.pack()
-
-        if data_key == "almacenamiento_total":
-            storage = Image.open("storage.png")
-            storage = storage.resize((50, 50))
-            storageIcon = ImageTk.PhotoImage(storage)
-            storage_label = tk.Label(frame, image=storageIcon, bg='#06061f')
-            storage_label.image = disco_icon
-            storage_label.pack()
         
         if data_key == "porcentaje_general":
             cpu_image = Image.open("cpu.png")  
             cpu_image = cpu_image.resize((50, 50))  
             cpu_icon = ImageTk.PhotoImage(cpu_image)
-            cpu_label = tk.Label(frame, image=cpu_icon, bg='#06061f')
+            cpu_label = tk.Label(frame, image=cpu_icon, bg='#0D2E3B')
             cpu_label.image = cpu_icon  
             cpu_label.pack()
 
@@ -424,37 +355,21 @@ def mostrar_telemetria_tiempo_real():
             gpu_image = Image.open("gpu.png")  
             gpu_image = gpu_image.resize((50, 50))  
             gpu_icon = ImageTk.PhotoImage(gpu_image)
-            gpu_label = tk.Label(frame, image=gpu_icon, bg='#06061f')
+            gpu_label = tk.Label(frame, image=gpu_icon, bg='#0D2E3B')
             gpu_label.image = gpu_icon  
             gpu_label.pack()
-
-        if data_key == "temperatura_gpu":
-             gpu_image2 = Image.open("gpu2.png")  
-             gpu_image2 = gpu_image2.resize((50, 50))  
-             gpu_icon2 = ImageTk.PhotoImage(gpu_image2)
-             gpu_label2 = tk.Label(frame, image=gpu_icon2, bg='#06061f')
-             gpu_label2.image = gpu_icon2 
-             gpu_label2.pack()
-
-        if data_key == "power_consumo":
-             energy = Image.open("energia.png")  
-             energy = energy.resize((50, 50))  
-             energyicon = ImageTk.PhotoImage(energy)
-             energy_label = tk.Label(frame, image=energyicon, bg='#06061f')
-             energy_label.image = energyicon 
-             energy_label.pack()
         
         if (data_key == "voltaje_rail1" or data_key == "voltaje_rail2" or data_key == "voltaje_rail3"):
-            voltaje_image = Image.open("thunder.png")  
+            voltaje_image = Image.open("voltaje.png")  
             voltaje_image = voltaje_image.resize((30, 30))  
             voltaje_icon = ImageTk.PhotoImage(voltaje_image)
-            voltaje_label = tk.Label(frame, image=voltaje_icon, bg='#06061f')
+            voltaje_label = tk.Label(frame, image=voltaje_icon, bg='#0D2E3B')
             voltaje_label.image = voltaje_icon  
             voltaje_label.pack()
         # -----------Iconos------------
 
         if data_key == "temperaturas_cpu":
-            canvas = tk.Canvas(frame, width=square_size, height=square_size, bg='#06061f', highlightthickness=0)
+            canvas = tk.Canvas(frame, width=square_size, height=square_size, bg='#0D2E3B', highlightthickness=0)
             
             canvas.pack()
 
@@ -478,7 +393,7 @@ def mostrar_telemetria_tiempo_real():
 
             flecha = canvas.create_line(square_size // 2, square_size // 2, square_size // 2, square_size // 4, fill='white', width=2)
 
-            temperatura_label = tk.Label(frame, text="0°C", font=('Arial', 14), fg='white', bg='#06061f')
+            temperatura_label = tk.Label(frame, text="0°C", font=('Arial', 14), fg='white', bg='#0D2E3B')
             temperatura_label.pack(side="right", anchor="e")
 
             def actualizar_barra_progreso():
@@ -498,7 +413,7 @@ def mostrar_telemetria_tiempo_real():
             actualizar_barra_progreso()
 
         else:
-            value_label = tk.Label(frame, text="0%", font=('Arial', 18), fg='white', bg='#06061f')
+            value_label = tk.Label(frame, text="0%", font=('Arial', 18), fg='white', bg='#0D2E3B')
             value_label.pack()
 
         frames.append((value_label, data_key))

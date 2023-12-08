@@ -139,7 +139,7 @@ def obtener_telemetria():
     gpu_info = get_gpu_info()
 
     cpu_info = {
-        "nucleos": psutil.cpu_count(logical=False),
+        "nucleos": psutil.cpu_count(logical=True),
         "porcentaje_general": psutil.cpu_percent(),
         "porcentaje_por_nucleo": psutil.cpu_percent(percpu=True),
         "temperaturas_cpu": dict(cpu_temperatures),
@@ -304,11 +304,11 @@ def mostrar_telemetria_tiempo_real():
 
     for idx, (label_text, data_key) in enumerate([
         ("Porcentaje CPU:", "porcentaje_general"),
-        ("Núm. de Cores:", "num_cores"),
+        ("Núm. de Cores:", "nucleos"),
         ("% Trabajo CPU (general):", "porcentaje_general"),
         ("Temperatura CPU:", "temperaturas_cpu"),
-        ("% Trabajo CPU (cada core):", "porcentaje_core"),
-        ("Porcentaje GPU:", "porcentaje_trabajo"),
+        ("% Trabajo de los núcleos:", "porcentaje_core"),
+        ("Porcentaje de trabajo de la GPU:", "porcentaje_trabajo"),
         ("Frecuencia GPU:", "frecuencia"),
         ("Temperatura GPU:", "temperatura_gpu"),
         ("Uso de RAM:", "uso_ram"),
@@ -316,12 +316,12 @@ def mostrar_telemetria_tiempo_real():
         ("Almacenamiento Interno Total:", "almacenamiento_total"),
         ("Power Consumo Total (W):", "power_consumo"),
         ("Porcentaje Batería:", "porcentaje_bateria"),
-        ("Tiempo Autonomía Batería:", "tiempo_autonomia"),
+        ("Autonomía Batería:", "tiempo_autonomia"),
         ("Frecuencia EMC:", "frecuencia_emc"),
         ("Temperatura SOC:", "temperatura_soc"),
-        ("Voltaje Rail1:", "voltaje_rail1"),
-        ("Voltaje Rail2:", "voltaje_rail2"),
-        ("Voltaje Rail3:", "voltaje_rail3"),
+        ("Rail1:", "voltaje_rail1"),
+        ("Rail2:", "voltaje_rail2"),
+        ("Rail3:", "voltaje_rail3"),
     ]):
         frame = tk.Frame(
             frame_telemetria,
@@ -375,7 +375,6 @@ def mostrar_telemetria_tiempo_real():
             cpu_label = tk.Label(frame, image=cpu2icon, bg='#06061f')
             cpu_label.image = cpu2icon
             cpu_label.pack()
-
         if data_key == "porcentaje_core":
             cpu3 = Image.open("cpu.png")
             cpu3 = cpu3.resize((50, 50))
@@ -478,7 +477,7 @@ def mostrar_telemetria_tiempo_real():
             for i in range(inicio_rojo, fin_rojo, -1):
                 canvas.create_arc(10, 10, square_size - 10, square_size - 10, start=i, extent=-1, outline=rojo, width=2)
 
-            flecha = canvas.create_line(square_size // 2, square_size // 2, square_size // 2, square_size // 4, fill='white', width=2)
+            flecha = canvas.create_line(square_size // 2, square_size // 2, square_size // 2, square_size // 4, fill='darkgrey', width=3)
 
             temperatura_label = tk.Label(frame, text="0°C", font=('Arial', 14), fg='white', bg='#06061f')
             temperatura_label.pack(side="right", anchor="e")
@@ -496,7 +495,6 @@ def mostrar_telemetria_tiempo_real():
 
                 value_label.config(text=str(temperatura_actual) + "°C")
                 ventana_telemetria.after(1000, actualizar_barra_progreso)
-
             actualizar_barra_progreso()
 
         else:
@@ -513,7 +511,6 @@ def mostrar_telemetria_tiempo_real():
         telemetria = obtener_telemetria()
         temperatures = get_cpu_temperatures()
         label_temperatura.config(text="Temperatura CPU: " + str(temperatures[0][1]))
-
         cpu_temperature = temperatures[0][1] if temperatures else "N/A"
         current_cpu_temperature.set(cpu_temperature)
 
@@ -532,6 +529,8 @@ def mostrar_telemetria_tiempo_real():
                     value = telemetria[1]['frecuencia']
                 elif data_key == "temperatura_gpu" and "temperatura_gpu" in telemetria[1]:
                     value = telemetria[1]['temperatura_gpu']
+                elif data_key == "nucleos" and "nucleos" in telemetria[0]:
+                    value = f"{telemetria[0]['nucleos']}"             
                 if isinstance(value, (int, float)):
                     label.config(text=f"{value:.2f} °C")
                 else:

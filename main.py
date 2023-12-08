@@ -122,7 +122,7 @@ def get_gpu_info():
         gpu = GPUtil.getGPUs()[0]
         gpu_info = {
             "porcentaje_trabajo": gpu.load * 100,
-            "frecuencia": getattr(gpu, 'memoryInfo', {}).get(0, "No disponible"),  # Assuming core frequency is stored at index 0
+            "frecuencia": getattr(gpu, 'coreClock', "No disponible"),
             "temperatura_gpu": gpu.temperature,
         }
     except Exception as e:
@@ -149,7 +149,9 @@ def obtener_telemetria():
         gpu = GPUtil.getGPUs()[0]
         gpu_info = {
             "porcentaje_trabajo": gpu.load * 100,
-            "frecuencia": getattr(gpu, 'memoryInfo', {}).get(0, "No disponible"),  # Assuming core frequency is stored at index 0
+            "frecuencia": getattr(gpu, 'coreClock', "No disponible"),
+            "temperatura_gpu": gpu.temperature,
+
         }
 
     except Exception as e:
@@ -530,9 +532,8 @@ def mostrar_telemetria_tiempo_real():
                     value = telemetria[1]['frecuencia']
                 elif data_key == "temperatura_gpu" and "temperatura_gpu" in telemetria[1]:
                     value = telemetria[1]['temperatura_gpu']
-
                 if isinstance(value, (int, float)):
-                    label.config(text=f"{value:.2f}%")
+                    label.config(text=f"{value:.2f} °C")
                 else:
                     label.config(text=str(value))
 
